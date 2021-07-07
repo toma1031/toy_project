@@ -34,9 +34,9 @@ PASSWORD=env("PASSWORD")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
-
+AUTH_USER_MODEL = 'accounts.User'
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'find_retro_toys',
-    
+    'phone_field',
 ]
 
 MIDDLEWARE = [
@@ -89,6 +89,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', # 変更
         'NAME': 'toy_project', # プロジェクトで使用するデータベース名
+        'OPTIONS': {
+            "init_command": "SET foreign_key_checks = 0;",
+            },
         'USER': 'root', # パソコンにインストールしたMySQLのユーザー名
         'PASSWORD': '', # 同上。そのパスワード
         'PORT': 3306 
@@ -133,3 +136,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+JWT_AUTH = {
+    'JWT_VERIFY_EXPIRATION': False,
+    'JWT_AUTH_HEADER_PREFIX': 'JWT',
+}
+
+REST_FRAMEWORK = { 
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),  
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+    ),  
+    'NON_FIELD_ERRORS_KEY': 'detail',
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json'
+}
