@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken', #追加
     'djoser', #追加
+    'corsheaders', 
 ]
 
 
@@ -75,6 +76,8 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', #追加　（一番上に）
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -82,6 +85,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'django.middleware.common.CommonMiddleware', # 追加
 ]
 
 ROOT_URLCONF = 'toy_project.urls'
@@ -168,11 +173,19 @@ JWT_AUTH = {
 
 REST_FRAMEWORK = { 
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ),  
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        # 'rest_framework_jwt.authentication.JSONWebTokenAuthentication',　ここコメントアウト
+        #Simple JWTを読み込む
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),  
     'NON_FIELD_ERRORS_KEY': 'detail',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json'
 }
+
+# 追加
+# Reactとの接続用（reactの開発用ポートが3000番のため）
+CORS_ORIGIN_WHITELIST = (
+    'http://localhost:3000',
+)

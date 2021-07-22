@@ -20,6 +20,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # 以下がルートとなるurl
     path('', include('accounts.urls')),
+    # djoserとはDjango REST Framework上での基本的なユーザー認証や登録などの認証周りをサポートしてくれるライブラリです。
+    # 参考文献
+    # https://qiita.com/KueharX/items/eef29ae0c5c238cbf61c
+    path('auth/', include('djoser.urls.jwt')),
     #追加
     #api/authアプリケーションのURLconf読み込み
     path('api/v1/auth/', include('djoser.urls.jwt'))

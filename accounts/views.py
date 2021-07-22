@@ -79,7 +79,7 @@ from rest_framework_simplejwt.views import (
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAuthenticated,)
     queryset = User.objects.all()
     serializer_class = UserSerializer
 

@@ -36,4 +36,6 @@ router.register(r'users',views.UserViewSet)
 urlpatterns = [
     # 上でDefaultRouterに定義したurlが登録されAPIコンソールに表示される
     path('', include(router.urls)),
+    # path('auth/', include('djoser.urls.jwt')),
+
 ]
