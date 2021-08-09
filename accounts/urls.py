@@ -27,6 +27,7 @@ from django.conf.urls import url
 from accounts import views
 from rest_framework.routers import DefaultRouter
 from .views import UserViewSet
+from accounts.views import MyPageView
 
 router = DefaultRouter()
 # Viewでquerysetの記述があればbasenameの設定はいらない
@@ -37,5 +38,5 @@ urlpatterns = [
     # 上でDefaultRouterに定義したurlが登録されAPIコンソールに表示される
     path('', include(router.urls)),
     # path('auth/', include('djoser.urls.jwt')),
-
+    url(r'^mypage/$', MyPageView.as_view()),
 ]

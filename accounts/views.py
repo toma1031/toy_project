@@ -15,9 +15,11 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-
 # from django.views import generic
-# from django.views.generic import CreateAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView
+# from django.views.generic import RetrieveAPIView
+from accounts import permissions
+
+
 
 # # ユーザ作成のView(POST)
 # class AuthRegister(CreateAPIView):
@@ -79,7 +81,8 @@ from rest_framework_simplejwt.views import (
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    permission_classes = (permissions.IsAuthenticated,)
+    # permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.UpdateOwnProfile,)
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -87,3 +90,18 @@ class UserViewSet(viewsets.ModelViewSet):
 # トークン（ユーザー情報）を取得するのに必要なView
 class ObtainTokenPairWithColorView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+
+class MyPageView(generics.RetrieveAPIView):
+    permission_classes = (permissions.UpdateOwnProfile,)
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get(self, request, format=None):
+
+        return Response(data={
+            'username': request.user.username,
+            'email': request.user.email,
+            'id': request.user.id,
+            },
+            status=status.HTTP_200_OK)
