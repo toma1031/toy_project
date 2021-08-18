@@ -103,5 +103,11 @@ class MyPageView(generics.RetrieveAPIView):
             'username': request.user.username,
             'email': request.user.email,
             'id': request.user.id,
+            'password': request.user.password,
+            'state': request.user.state,
+            'city': request.user.city,
+            'address': request.user.address,
+            'zipcode': request.user.zipcode,
+            'phone_number': request.user.phone_number,
             },
             status=status.HTTP_200_OK)
