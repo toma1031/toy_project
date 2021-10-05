@@ -55,6 +55,10 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', #追加
     'djoser', #追加
     'corsheaders', 
+    # 投稿に紐づいたデータベースにある写真を消すため、下記を記載
+    # 参考記事
+    # https://pypi.org/project/django-cleanup/
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 
@@ -189,3 +193,8 @@ REST_FRAMEWORK = {
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
 )
+
+# ユーザーの投稿写真保存のファイルパス
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# 下記のコードは写真を保存して欲しいPathを設定
+MEDIA_URL = '/media/imgaes/photo_from_users/'

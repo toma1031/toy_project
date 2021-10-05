@@ -27,7 +27,7 @@ from django.conf.urls import url
 from accounts import views
 from rest_framework.routers import DefaultRouter
 from .views import UserViewSet
-from accounts.views import MyPageView
+from accounts.views import MyPageView, MyPagePasswordUpdateView
 
 router = DefaultRouter()
 # Viewでquerysetの記述があればbasenameの設定はいらない
@@ -39,4 +39,5 @@ urlpatterns = [
     path('', include(router.urls)),
     # path('auth/', include('djoser.urls.jwt')),
     url(r'^mypage/$', MyPageView.as_view()),
+    url(r'^mypage_password_update/$', MyPagePasswordUpdateView.as_view()),
 ]

@@ -141,3 +141,30 @@ class MyPageView(generics.RetrieveAPIView):
         # そこで、今回のコードでserializerを用いてデシリアライズ（Model内のobjectを復元）してresponseで返すようにしています。
         return Response(data,status=status.HTTP_200_OK)
 
+class MyPagePasswordUpdateView(generics.RetrieveAPIView):
+    # UpdateOwnProfileはUserViewで適用しているカスタムパーミッションです。UpdateOwnProfileにより、ユーザーは自身のプロフィールのみアップデートできるように制限をかけています。対して、MyPageViewではUserViewと異なり、アップデート処理を行わないので、認証ユーザーのみアクセス権を与えるisAuthenticatedの方が適していると思います。
+    permission_classes = (IsAuthenticated,)
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get(self, request, format=None):
+        user = User.objects.get(id=request.user.id)
+        data = UserSerializer(user).data
+        # DRFの MyPageViewでpasswordをしっかり返せているか確認してみてください。おそらく以前のままでしたら、MyPageViewでpasswordはrerurnしていないと思います。
+        # return Response(data={
+        #     'username': request.user.username,
+        #     'email': request.user.email,
+        #     'id': request.user.id,
+        #     'password': request.user.password,
+        #     'state': request.user.state,
+        #     'city': request.user.city,
+        #     'address': request.user.address,
+        #     'zipcode': request.user.zipcode,
+        #     'phone_number': request.user.phone_number,
+        #     },
+        #     status=status.HTTP_200_OK)
+
+        # DRFの MyPageViewでpasswordをしっかり返せているか確認してみてください。おそらく以前のままでしたら、MyPageViewでpasswordはrerurnしていないと思います。
+        # 以前から、stateを追加されたことが原因です。stateのみForeignKeyとなっていますので、JSONシリアライズできないとエラーが出ていました。基本的にForeignKeyやManyToManyFieldが含まれている場合は以前までの書き方ではうまく返せません。
+        # そこで、今回のコードでserializerを用いてデシリアライズ（Model内のobjectを復元）してresponseで返すようにしています。
+        return Response(data,status=status.HTTP_200_OK)

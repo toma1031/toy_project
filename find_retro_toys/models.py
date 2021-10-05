@@ -26,7 +26,7 @@ class Post(models.Model):
 
 # 以下を書くことによりcategoryをちゃんとオブジェクト名で表示できる
   def __str__(self):
-    return self.title
+    return self.condition
 
 class MessageRoom(models.Model):
     post = models.ForeignKey(Post, verbose_name='MessageRoom Post', on_delete=models.CASCADE)
