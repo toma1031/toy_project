@@ -18,11 +18,11 @@ class Post(models.Model):
   user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=False, related_name='user')
   shipping_price = models.IntegerField(verbose_name='Shipping Price',null=False, blank=False)
   # 写真は５枚アップロードできるようにする
-  photo = models.ImageField(upload_to='images/', verbose_name='Photo', null=False, blank=False)
-  photo2 = models.ImageField(upload_to='images/', verbose_name='Photo2', null=True, blank=True)
-  photo3 = models.ImageField(upload_to='images/', verbose_name='Photo3', null=True, blank=True)
-  photo4 = models.ImageField(upload_to='images/', verbose_name='Photo4', null=True, blank=True)
-  photo5 = models.ImageField(upload_to='images/', verbose_name='Photo5', null=True, blank=True)
+  photo = models.ImageField(verbose_name='Photo', null=False, blank=False)
+  photo2 = models.ImageField(verbose_name='Photo2', null=True, blank=True)
+  photo3 = models.ImageField(verbose_name='Photo3', null=True, blank=True)
+  photo4 = models.ImageField(verbose_name='Photo4', null=True, blank=True)
+  photo5 = models.ImageField(verbose_name='Photo5', null=True, blank=True)
 
 # 以下を書くことによりcategoryをちゃんとオブジェクト名で表示できる
   def __str__(self):
