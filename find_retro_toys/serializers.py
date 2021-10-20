@@ -16,6 +16,9 @@ class PostReadSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
+
+# 現在userフィールドは、serializer.is_valid()を満たした場合にserializer.save(user=self.request.user)で保存するようにしています。こちらはserializers.pyを修正することでバリデーションエラーが無くなると思います。
     class Meta:
         model = Post
         fields = ('id', 'title', 'maker', 'condition', 'price', 'description', 'user', 'shipping_price', 'photo', 'photo2', 'photo3', 'photo4', 'photo5',)
+        read_only_fields = ('id','user')

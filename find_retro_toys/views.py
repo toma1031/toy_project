@@ -19,6 +19,7 @@ from rest_framework_simplejwt.views import (
 import base64
 
 
+
 # ListAPIViewを使うときは「モデルに紐付かない＋レコード一覧の取得」をしたいときです。その他のGeneric Viewもその種類によって用途が分かれておりますが、ModelViewSetで事足りる場合はGeneric Viewはほぼ使いません。
 # 例えば、Postモデルに対して何か特別な処理を記述したいときは、大概はPostのModelViewSetに加筆するだけで処理が記述できます。
 # ex )
@@ -31,9 +32,55 @@ import base64
 # DRFは、Djangoのように専用Viewを作ってテンプレートに渡す、という考え方ではありません。ですのでListAPIViewではなく、ユーザーモデルのようにModelViewSetを作成することで基本的なCRUD処理は可能です。また、投稿一覧を未ログインでも閲覧可能にする場合は、PermissionはAllowAnyにする必要があります。
 # https://qiita.com/AJIKING/items/29327b7f7c46e2245505
 class PostViewSet(viewsets.ModelViewSet):
+  
   permission_classes = (permissions.AllowAny,)
   queryset = Post.objects.all()
   serializer_class = PostSerializer
+
+  def create(self, request,pk=None):
+        print("Here is create()")
+        # photo2 ~ photo5 は指定しなくても良いフィールドだと思いますが、
+        # 例えばphoto のみを指定してリクエストを送った場合、上記の部分でphoto2 に request.data['photo2'] を指定してしまっている、つまりImageFieldに空のデータを入力しているからエラーが出てしまっています。
+        # 「request.data に photo2 が含まれるなら、photo2 フィールドにそれを指定」
+        # のように場合分けをする処理を追加する必要があると思います。
+        # if request.data['photo2'] and request.data['photo3'] and request.data['photo4'] and request.data['photo5']: 
+        #     data={'title':request.data['title'], 'maker': request.data['maker'], 'condition': request.data['condition'], 'price': 
+        # コード簡略化のため下記のように辞書に追加していく形でも良いかと思います。
+        # 辞書オブジェクト[キー] = 値
+        # とすることで辞書を上書きできます。
+        data={'title':request.data['title'], 'maker': request.data['maker'], 'condition': request.data['condition'], 'price': request.data['price'], 'description': request.data['description'], 'shipping_price': request.data['shipping_price'], 'photo': request.data['photo']}
+        if request.data['photo2']:
+            data['photo2'] = request.data['photo2']
+        elif request.data['photo3']:
+            data['photo3'] = request.data['photo3']
+        elif request.data['photo4']:
+            data['photo4'] = request.data['photo4']
+        elif request.data['photo5']:
+            data['photo5'] = request.data['photo5']
+
+
+        serializer = self.serializer_class(data=data)
+        if serializer.is_valid():
+        # userField のみここでリクエストユーザーに設定する
+        # axios リクエストには user を含めず、DRF 側でPostオブジェクトの保存時に、user = リクエストユーザー として保存する
+            serializer.save(user=self.request.user)
+            print("Post created")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # DRF側のdef create()内で保存できなかった場合にはBad Request を返す
+        # React側で、DRFからBad Request（status 400）を受け取ったら、エラーを表示させる（Postがうまく作成できていないという情報）
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        print(serializer.errors)
+        print(serializer.is_valid())
+        print(serializer)
+        print(request.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+  # def create(self, request):
+  #       print(request.data)
+
+  #       return Response("test", status=status.HTTP_200_OK)
 
   # 参考資料
   # https://just-python.com/document/django/orm-query/values-values_list
@@ -60,6 +107,7 @@ class PostViewSet(viewsets.ModelViewSet):
   # 今回の目的はPostの一覧を取得することですので，一覧Viewですが，例えば一つ一つのPostの情報を取得したい場合は，詳細viewを指定します．
   # 詳細viewの場合はpkの記述が必要となり，アクションメソッドが多くなってくると分かりにくくなるので僕は一覧viewの場合（pk=None）も記述していますが，pkについては記述しなくても動きます！
   def get_data(self, request):
+
     # Postオブジェクトを取得
       queryset = Post.objects.all()
     # serializer変数にPostReadSerializerを読み込むように設定
