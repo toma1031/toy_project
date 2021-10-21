@@ -194,7 +194,8 @@ CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
 )
 
+# MEDIA_ROOT は「ファイルを置く場所」であり、MEDIA_URLは「そのディレクトリの公開用のURL」です。
 # ユーザーの投稿写真保存のファイルパス
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # 下記のコードは写真を保存して欲しいPathを設定
-MEDIA_URL = '/media/imgaes/photo_from_users/'
+MEDIA_URL = '/media/'
