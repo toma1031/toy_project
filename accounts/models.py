@@ -48,6 +48,6 @@ class User(AbstractUser):
     city = models.CharField(verbose_name='City', max_length=20, blank=True, null=True)
     address = models.CharField(verbose_name='Address', max_length=50, blank=True, null=True)
     zipcode = models.CharField(verbose_name='Zip Code',max_length=5, blank=True, null=True)
-    phone_number = PhoneField(blank=True)
+    phone_number = PhoneField(verbose_name='Phone Number ',blank=True, null=True)
     # CustomUserManagerを使う際は下記の記載が必ず必要。
     objects = CustomUserManager()

@@ -106,6 +106,42 @@ class UserViewSet(viewsets.ModelViewSet):
     #         print(serializer.is_valid)
     #         serializer.save()
 
+
+# # ユーザー情報をアップデートするのは、UserViewSetですので、def update()の上書きはUserViewSet内で記述してください。
+#     def update(self, request, pk, partial=True):
+#             # update()に入っているか & リクエストデータ確認用
+#             print(request.data)
+#             print(request.user)
+#             user = request.user
+#             email = request.user.email
+#             data={'state': request.data['state'], 'city': request.data['city'], 'address': request.data['address'], 'zipcode': request.data['zipcode'],'phone_number': request.data['phone_number']}
+#             serializer = self.serializer_class(user,data=data, partial=True)
+#             if serializer.is_valid():
+#                 # もしユーザーの名前を変更しないのであれば、Fromに入力されているUsernameだけはアップデートしない（そのままにしておく）
+#                 if request.data['username'] == user:
+#                     serializer.save(email=request.data['email'], state=request.data['state'], city=request.data['city'], address=request.data['address'], zipcode=request.data['zipcode'], phone_number=request.data['phone_number'])
+#                 # もしユーザーのEmailを変更しないのであれば、Fromに入力されているEmailだけはアップデートしない（そのままにしておく）
+#                 elif request.data['email'] == email:
+#                     serializer.save(username=request.data['username'], state=request.data['state'], city=request.data['city'], address=request.data['address'], zipcode=request.data['zipcode'], phone_number=request.data['phone_number'])
+#                 else:
+#                     serializer.save()
+#                 return Response(serializer.data, status=status.HTTP_200_OK)
+#             print(serializer.errors)
+#             return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+
+# ユーザー情報をアップデートするのは、UserViewSetですので、def update()の上書きはUserViewSet内で記述してください。
+    def update(self, request, pk, partial=True):
+            # update()に入っているか & リクエストデータ確認用
+            print(request.data)
+            print(request.user)
+            data={'username':request.data['username'],'email':request.data['email'],'state': request.data['state'], 'city': request.data['city'], 'address': request.data['address'], 'zipcode': request.data['zipcode'],'phone_number': request.data['phone_number']}
+            serializer = self.serializer_class(request.user,data=data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            print(serializer.errors)
+            return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+
 #追加
 # トークン（ユーザー情報）を取得するのに必要なView
 class ObtainTokenPairWithColorView(TokenObtainPairView):
