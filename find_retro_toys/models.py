@@ -28,10 +28,13 @@ class Post(models.Model):
 
 # 以下を書くことによりcategoryをちゃんとオブジェクト名で表示できる
   def __str__(self):
-    return str(self.condition)
+    return str(self.title)
 
 class MessageRoom(models.Model):
-    post = models.ForeignKey(Post, verbose_name='MessageRoom Post', on_delete=models.CASCADE)
+    # related_nameの使い方
+    # 逆参照するときはクラス名ではなくrelated_nameを使うことで逆参照が可能となります。
+    # https://djangobrothers.com/blogs/related_name/
+    post = models.ForeignKey(Post, verbose_name='MessageRoom Post', related_name='messageroom_post', on_delete=models.CASCADE)
     inquiry_user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=False, related_name='inquiry_user')
     update_time = models.DateTimeField(auto_now=True)
 
@@ -49,9 +52,11 @@ class MessageRoom(models.Model):
       
 class Message(models.Model):
     message = models.CharField(max_length=100)
-    message_room = models.ForeignKey(MessageRoom, verbose_name='Message', on_delete=models.CASCADE)
+    message_room = models.ForeignKey(MessageRoom, verbose_name='Message_room_id', on_delete=models.CASCADE)
     message_user = models.ForeignKey(get_user_model(), verbose_name='message_user', on_delete=models.CASCADE)
     create_time = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
       return str(self.id)
+
+

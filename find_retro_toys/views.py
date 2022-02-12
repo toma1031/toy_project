@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.http import HttpResponse, Http404
@@ -8,8 +8,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status, viewsets, filters
 from rest_framework.views import APIView
-from .serializers import PostSerializer
-from .models import Post, ConditionTag
+from .serializers import PostSerializer, MessageSerializer, MessageRoomSerializer
+from .models import Post, ConditionTag, Message, MessageRoom
 from accounts.models import User
 from rest_framework.decorators import action
 from rest_framework_simplejwt.views import (
@@ -17,6 +17,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 import base64
+from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
 
 
 # class PostViewSet(viewsets.ModelViewSet):
@@ -137,20 +139,6 @@ import base64
 #         return Response(data, status=status.HTTP_200_OK)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ListAPIViewを使うときは「モデルに紐付かない＋レコード一覧の取得」をしたいときです。その他のGeneric Viewもその種類によって用途が分かれておりますが、ModelViewSetで事足りる場合はGeneric Viewはほぼ使いません。
 # 例えば、Postモデルに対して何か特別な処理を記述したいときは、大概はPostのModelViewSetに加筆するだけで処理が記述できます。
 # ex )
@@ -163,12 +151,51 @@ import base64
 # DRFは、Djangoのように専用Viewを作ってテンプレートに渡す、という考え方ではありません。ですのでListAPIViewではなく、ユーザーモデルのようにModelViewSetを作成することで基本的なCRUD処理は可能です。また、投稿一覧を未ログインでも閲覧可能にする場合は、PermissionはAllowAnyにする必要があります。
 # https://qiita.com/AJIKING/items/29327b7f7c46e2245505
 class PostViewSet(viewsets.ModelViewSet):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.AllowAny, )
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-        
-    def create(self, request,pk=None):
-        data={'title':request.data['title'], 'maker': request.data['maker'], 'condition': request.data['condition'], 'price': request.data['price'], 'description': request.data['description'], 'shipping_price': request.data['shipping_price'], 'photo': request.data['photo']}
+
+    # http://note.crohaco.net/2018/django-rest-framework-serializer/
+    # 上記の記事で非常に詳しく説明されていますが、
+    # serializerでは、create と update メソッドが 状況に応じて呼び出されます。
+    # この状況というのが引数の数です。
+    # create
+    # def create():
+    # では
+    # serializer = self.serializer_class(data=data)
+    # dataというのは、新規作成したいオブジェクトのデータです。
+    # update
+    # def update():
+    # では
+    # serializer = self.serializer_class(obj, data=data, partial=True)
+    # objとは、更新対象のオブジェクト
+    # dataとは、更新したいデータ
+    # partial=True を指定すると、一部更新可能になります。
+    # 仮にpartial=Trueが指定されていないと
+    # serializer = self.serializer_class(obj, data=data)
+    # dataには対象オブジェクトの全てのFieldを指定する必要があります。
+    # 分かりやすい例を考えるとあるUserモデルに、name・email・passwordフィールドがあるとします。
+    # Userを新規作成したい場合
+    # serializer = self.serializer_class(data={'name':'tanaka','email':'tanaka@gmail.com','password':'pass'})
+    # if serializer.is_valid():
+    # serializer.save()
+    # としてcreate()を呼び出します。
+    # 上で作成したUser（tanakaさん）を更新（一部更新としてemailのみ変更）したい場合
+    # obj = User.obujects.get(name="tanaka")
+    # serializer = self.serializer_class(obj, data={'email':'new@gmail.com'}, partial=True)
+    # objで更新対象のオブジェクト（ここではtanakaさん）を指定し、そのUserの一部のフィールドを更新しています。
+    # このように、引数の数でcreateとupdateを状況に応じて呼び出しています。
+
+    def create(self, request, pk=None):
+        data = {
+            'title': request.data['title'],
+            'maker': request.data['maker'],
+            'condition': request.data['condition'],
+            'price': request.data['price'],
+            'description': request.data['description'],
+            'shipping_price': request.data['shipping_price'],
+            'photo': request.data['photo']
+        }
         if request.data['photo2']:
             data['photo2'] = request.data['photo2']
         elif request.data['photo3']:
@@ -181,45 +208,183 @@ class PostViewSet(viewsets.ModelViewSet):
 
         serializer = self.serializer_class(data=data)
         if serializer.is_valid():
-        # userField のみここでリクエストユーザーに設定する
-        # axios リクエストには user を含めず、DRF 側でPostオブジェクトの保存時に、user = リクエストユーザー として保存する
-        # userField のみここでリクエストユーザーに設定する
-        # User項目がDRFのAPIコンソールで表示されないのは、下記のコードのせい（user を手動で設定しているからです。）
-        # axios リクエストには user を含めず、DRF 側でPostオブジェクトの保存時に、user = リクエストユーザー として保存する
-        # 「Postを投稿（保存）する際に、userフィールドはリクエストしてきたユーザーをDRF側で識別して保存する」と設定しているためAPIコンソールでuserフィールドを選択させる必要がないということになります！
+            # userField のみここでリクエストユーザーに設定する
+            # axios リクエストには user を含めず、DRF 側でPostオブジェクトの保存時に、user = リクエストユーザー として保存する
+            # userField のみここでリクエストユーザーに設定する
+            # User項目がDRFのAPIコンソールで表示されないのは、下記のコードのせい（user を手動で設定しているからです。）
+            # axios リクエストには user を含めず、DRF 側でPostオブジェクトの保存時に、user = リクエストユーザー として保存する
+            # 「Postを投稿（保存）する際に、userフィールドはリクエストしてきたユーザーをDRF側で識別して保存する」と設定しているためAPIコンソールでuserフィールドを選択させる必要がないということになります！
             serializer.save(user=self.request.user)
             # print("Post created")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-
     def update(self, request, pk, partial=True):
-            # update()に入っているか & リクエストデータ確認用
-            print(request.data)
-            obj = Post.objects.get(id=pk)
-            
-            data={'title':request.data['title'], 'maker': request.data['maker'], 'condition': request.data['condition'], 'price': request.data['price'], 'description': request.data['description'], 'shipping_price': request.data['shipping_price'],}
-            # request.dataとは、Reactからリクエストしているデータです。
-            # request.data['photo']は、React側のformdata
-            # つまり、
-            # if request.data['１、ここのphotoはなにのPhotoを指しているのか？React？DRF?'] != 'null':
-            # この質問の答えは、Reactからリクエストしたデータの‘photo’です。
-            # つまり下記のIF文はReactからPhotoがNullじゃなかったら（つまりPhotoが送られてきたら）
-            if request.data['photo'] != 'null':
-                #  DRFでアップデートするために用意しているdata変数に、ReactのPhotoデータ（Updateしたもの）を追加
-                data['photo'] = request.data['photo']
-            if request.data['photo2'] != 'null':
-                data['photo2'] = request.data['photo2']
-            if request.data['photo3'] != 'null':
-                data['photo3'] = request.data['photo3']
-            if request.data['photo4'] != 'null':
-                data['photo4'] = request.data['photo4']
-            if request.data['photo5'] != 'null':
-                data['photo5'] = request.data['photo5']
-                
-            serializer = self.serializer_class(obj,data=data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
+        # update()に入っているか & リクエストデータ確認用
+        print(request.data)
+        obj = Post.objects.get(id=pk)
+
+        data = {
+            'title': request.data['title'],
+            'maker': request.data['maker'],
+            'condition': request.data['condition'],
+            'price': request.data['price'],
+            'description': request.data['description'],
+            'shipping_price': request.data['shipping_price'],
+        }
+        # request.dataとは、Reactからリクエストしているデータです。
+        # request.data['photo']は、React側のformdata
+        # つまり、
+        # if request.data['１、ここのphotoはなにのPhotoを指しているのか？React？DRF?'] != 'null':
+        # この質問の答えは、Reactからリクエストしたデータの‘photo’です。
+        # つまり下記のIF文はReactからPhotoがNullじゃなかったら（つまりPhotoが送られてきたら）
+        if request.data['photo'] != 'null':
+            #  DRFでアップデートするために用意しているdata変数に、ReactのPhotoデータ（Updateしたもの）を追加
+            data['photo'] = request.data['photo']
+        if request.data['photo2'] != 'null':
+            data['photo2'] = request.data['photo2']
+        if request.data['photo3'] != 'null':
+            data['photo3'] = request.data['photo3']
+        if request.data['photo4'] != 'null':
+            data['photo4'] = request.data['photo4']
+        if request.data['photo5'] != 'null':
+            data['photo5'] = request.data['photo5']
+
+        # objとは、更新対象のオブジェクト
+        # dataとは、更新したいデータ
+        # partial=True を指定すると、一部更新可能になります。
+        serializer = self.serializer_class(obj, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        print(serializer.errors)
+        return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+
+    ## フォロー判断用
+    # 関数名がURLに追加されるのは、
+    # （考え方としては、URLに働き・処理が追加されるイメージです）
+    # アクションメソッドを用いた関数を定義した時のみです。
+    # なのでアクセスするエンドポイントURLは
+    # http://127.0.0.1:8000/posts/PostのID/open_messageroom
+    # になる
+    # MessageRoomViewSetを加筆されていますが、MessageRoomを開く際には、
+    # /posts/ID/open_messageroom/ のエンドポイントにアクセスしていますよね？
+    # つまり、これはPostViewSet内に記述しているアクションメソッドopen_messageroom()であり、MessageRoomViewSetは使っていないという意味です！！
+    @action(detail=True, permission_classes=[IsAuthenticated])
+    def open_messageroom(self, request, pk):
+        #  新規Roomの作成にはget_or_createを用いると良いと思います。
+        # get_or_create()の使い方は以下の通りです。
+        # オブジェクトが存在しない場合は、DBにオブジェクトを登録して登録した値を返し、オブジェクトが存在する場合は、DBにオブジェクトを登録せずに値を返す
+        # ですので、オブジェクトが存在するか存在しないかで返される値が変わります。
+        # objには取得または作成されたオブジェクト・creaetdには新しいオブジェクトが作成されたかどうかを指定するブール値が返ります。
+        # objには、指定するMessageRoomオブジェクトがあった場合getしたMessageRoomオブジェクトが返され、指定するMessageRoomオブジェクトがなかった場合は新たに登録されたMessageRoomオブジェクトが返されます。
+        # createdは、新たなオブジェクトが登録された場合（指定するMessageRoomオブジェクトがなかった場合）True、登録されなかった場合（指定するMessageRoomオブジェクトがあった場合）にはFalseが返されます。
+        # このように、get_or_createを用いると、対象とするユーザーとPostに紐づくMessageRoomがある場合とまだ存在しない場合とを簡単に場合分けて処理することが可能です。
+        # https://docs.djangoproject.com/en/4.0/ref/models/querysets/
+        obj, created = MessageRoom.objects.get_or_create(inquiry_user=request.user, post=self.get_object())
+        # 下記でMessageRoomオブジェクトデータをフロントエンドへ送るためJSON化の準備をしている
+        serializer = MessageRoomSerializer(obj)
+        # 投稿主、質問者がそれぞれ適切なメッセージルームのURLを開くには
+        # Postのオーナー情報（今回post.userとして取得しようとしている値）まで含めるようにDRFからのレスポンスを修正する
+        # DRF側で オーナー＝質問者 となる場合にエラーを返し、そのエラーステータスを元にReact側でエラーハンドリングする
+        # これらの解決策がありますが、下の方のDRFを修正する方が賢明です。
+        # 理由としては、DRFを今のまま修正せずReact側で場合分け処理をする場合
+        # レスポンスを元にリダイレクト or MessageRoomの表示を分岐しているので、一度MessageRoomは作られてしまいます。
+        # オーナー=質問者のMessageRoomが余分にDBに追加されることになりますので
+        # その余分なMessageRoomが作られる前にDRF側で対処する方が良いということです。
+        # DRFのopen_messageroom()内を修正してみてください。
+        # 具体的には、
+        # if オーナー == 質問者:
+        # return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
+        # というような処理を追加すれば良いと思います。
+        # そうすると、React側で
+        # if (レスポンスstatus === 406){
+        # history.push("リダイレクト先URL");
+        # }
+        # 複雑な処理を記述する必要がなくなり、statusコードのみで簡単にリダイレクト処理を記述可能です。
+        if obj.post.user == obj.post.inquiry_user:
+            return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
+        # MessageRoomが既存の場合
+        else:
+            if not created:
+                # MessageRoomとそのRoom内のMessageを返す
+                # 下記のコードで上の下準備されたデータをJSON化している（何々.dataでJSON化できる、これをシリアライズという）
+                print("not created")
+                # HTTP_200_OKは「リクエストは成功しレスポンスとともに要求に応じたリソースが返される。」という意味です。
+                # 参照https://www.django-rest-framework.org/api-guide/status-codes/
                 return Response(serializer.data, status=status.HTTP_200_OK)
+            # MessageRoomがまだ存在しない場合
+            else:
+            # 新規Roomを作成
+                # objは必ずシリアライズしてResponseしなければなりません。
+                print("created")
+                # HTTP_201_CREATEDは「リクエストは完了し新たにリソースが作成された。」という意味です。
+                # 参照https://www.django-rest-framework.org/api-guide/status-codes/
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class MessageRoomViewSet(viewsets.ModelViewSet):
+    permission_classes = (permissions.AllowAny, )
+    queryset = MessageRoom.objects.all()
+    serializer_class = MessageRoomSerializer
+
+    # Get関数でメッセージルームにアクセスできるユーザーを制限
+    def get(self, request, **kwargs):
+        # message_room_obj変数にMessageroomオブジェクトのIDを入れ込む
+        message_room_obj = get_object_or_404(MessageRoom, pk=self.kwargs['pk'])
+        # 投稿したユーザー(message_room_obj.post.userとログイン中のユーザー(self.request.user)が一致する、もしくは
+        # メッセージルームを作ったユーザー（message_room_obj.inquiry_user）とログイン中のユーザー（self.request.user）が一致すれば、メッセージルームへ移動させる
+        if message_room_obj.post.user == self.request.user or message_room_obj.post.inquiry_user == self.request.user:
+            # super(). = MessageRoomViewクラスに設定しているListViewのこと
+            # **kwargs　＝　ここではその前のコードでmessage_room_obj=get_object_or_404(MessageRoom, pk=self.kwargs['pk'])としているから、message_roomのIDのことをさす。つまりreturn super().get(request, **kwargs)を詳しくいうと
+            # ListViewで設定したmessage_roomのIDを探して（GET）、それを返す
+            return super().get(request, **kwargs)
+        else:
+            # メッセージルームのメンバーでない場合はIndexへ飛ばす
+            return redirect('/')
+
+    # 送信済みのメッセージを表示するために必要
+    def get_context_data(self, **kwargs):
+        # contextという変数にMessageRoomViewSet（ここではsuperがMessageRoomViewSetを表している）のContextデータ（context_object_name = 'message_room'）をGetして辞書型として代入
+        # この時点で変数contextにはmessage_roomが辞書型で入っている。
+        context = super().get_context_data(**kwargs)
+        # message_listをContextとして定義。contextは辞書型のデータなので、データを追加することもできる。例えば、context['message_list'] = 'message_room'とすれば、keyがmessage_list、valueがMessage.objects.all()というデータを追加することができる。
+        # つまり、下記のように書くことによりcontextをどういうものにするか定義していることになる
+        # Message.objects.filter(message_room_id=self.kwargs['pk'])はMessageモデルのmessage_roomフィールドが今アクセスしてるMessageRoomのidと一致するものだけ持ってくるという意味。self.kwargs[‘pk’]はそのオブジェクトのIDという意味がある
+        context['message_list'] = Message.objects.filter(message_room_id=self.kwargs['pk'])
+        # 最後にContext（Message.objects.all()）を返す
+        return context
+
+class MessageViewSet(viewsets.ModelViewSet):
+    permission_classes = (permissions.AllowAny, )
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+
+    def create(self, request, pk=None):
+            print(request.data)
+            print(self.request.user)
+            # serializerの引数が一つの時は、create()が呼び出されるということを以前確認しました。
+            # そして、create()が呼び出される際の引数には作成したいオブジェクトの中身を指定します。
+            # 今回も同様、新たなMessageを作成したいので、その引数としてdataというオブジェクトを用意しています。
+            # そしてそのdataの中に、‘message’や‘message_room’などの必要なfieldと値を以下の部分で指定しています。
+            data = {
+                'message': request.data['message'],
+                'message_room': request.data['message_room'],
+                'create_time': timezone.now(),
+                'message_user': self.request.user.id,
+            }
+            # save()メソッドはDRFでは使えません．全てserializerを通して保存する必要があります．
+            # こちらは、上に述べたようにserializerの引数にdataを与え、create()を呼び出している部分です。
+            serializer = self.serializer_class(data=data)
+            # そして、
+            # if serializer.is_valid():
+            # の後にバリデーションが成功した場合、
+            # serializer.save()
+            # でMessageオブジェクトを新規作成しているという流れです。
+            # この部分です。
+            # http://note.crohaco.net/2018/django-rest-framework-serializer/
+            if serializer.is_valid():
+                serializer.save(message_user=self.request.user)
+                print("Message was sent")
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             print(serializer.errors)
-            return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
