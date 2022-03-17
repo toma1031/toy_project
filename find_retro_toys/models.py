@@ -15,7 +15,7 @@ class Post(models.Model):
   condition = models.ForeignKey(ConditionTag, verbose_name='Condition', on_delete=models.CASCADE)
   price = models.IntegerField(verbose_name='Price',null=False, blank=False)
   description = models.TextField(verbose_name='Description', max_length=300, null=False, blank=False)
-  user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=False, related_name='user')
+  user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=False, related_name='user_posts')
   shipping_price = models.IntegerField(verbose_name='Shipping Price',null=False, blank=False)
   # 写真は５枚アップロードできるようにする
   # photo = models.ImageField(upload_to='images/photo_from_user')

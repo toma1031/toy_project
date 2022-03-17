@@ -32,7 +32,10 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class MessageRoomSerializer(serializers.ModelSerializer):
-
+    username = serializers.SerializerMethodField()
+    def get_username(self, obj):
+        # 下記はMessageRoomモデルのpostフィールドに紐づいてあるuserフィールド、そしてそれに紐づいてあるusernameフィールドを返すという意味
+        return obj.post.user.username
     #SerializerMethodField()で定義している新たなフィールドです。このカスタマイズがない元々のコードでは、MessageRoomモデルには'post', 'inquiry_user', 'update_time'のフィールドのみが返されています。が、今回はRoomに紐づくMessageも返したいので新たにmessagesという出力専用フィールドを用意しています。
     messages = serializers.SerializerMethodField()
     # こちら以前にも登場しましたが、MethodFieldで定義したフィールド（今回はmessages）の中身をget_<field名>で指定します。
@@ -53,7 +56,15 @@ class MessageRoomSerializer(serializers.ModelSerializer):
         return data
     class Meta:
         model = MessageRoom
-        fields = ('id', 'post', 'inquiry_user', 'update_time', 'messages')
+        # この‘post’というのはMessageRoomModelのpost fieldを指します。
+        # そして post fieldは確かPost Modelに紐づいています。serializerで特別な記述をしない限り、ForeignKeyで紐づいているフィールドは、主キー（primary_key）の値のみを返します。
+        # つまり。MessageRoomSerializerの‘post’には、Postオブジェクトの主キーであるpostのIDが格納されるということです。
+        # 「MessageRoomSerializerでmethodField（‘messages’のようにget_○○()を用いて手動で設定するフィールド）により紐づいているPostオブジェクトのuserまで表示できるように修正する」
+        # もしくは、
+        # 「MessageRoomSerializerにdepth = 1」
+        # を指定することで、MessageRoomに紐づいているPostのuserまで表示できるようになります。
+        fields = ('id', 'post', 'inquiry_user', 'update_time', 'messages', 'username')
+        depth = 1
 
 
 class MessageSerializer(serializers.ModelSerializer):

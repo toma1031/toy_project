@@ -19,7 +19,7 @@ from rest_framework_simplejwt.views import (
 import base64
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-
+from django.db.models import Q
 
 # class PostViewSet(viewsets.ModelViewSet):
 
@@ -302,7 +302,7 @@ class PostViewSet(viewsets.ModelViewSet):
         # history.push("リダイレクト先URL");
         # }
         # 複雑な処理を記述する必要がなくなり、statusコードのみで簡単にリダイレクト処理を記述可能です。
-        if obj.post.user == obj.post.inquiry_user:
+        if obj.post.user == obj.inquiry_user:
             return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
         # MessageRoomが既存の場合
         else:
@@ -353,6 +353,139 @@ class MessageRoomViewSet(viewsets.ModelViewSet):
         context['message_list'] = Message.objects.filter(message_room_id=self.kwargs['pk'])
         # 最後にContext（Message.objects.all()）を返す
         return context
+
+    @action(detail=False, permission_classes=[IsAuthenticated])
+    # detail=Falseの一覧Viewの時は、pk=Noneと指定しないとエラーが出ます。
+    def my_messagerooms(self, request, pk=None):
+        # ユーザーが投稿したPost
+        # "user_posts"というのは、Postモデルにあるuserフィールドのrelated_name
+        # つまりrequest.user.user_posts.all()はリクエストを送っているユーザーでpostに紐づくユーザーを全て取得という意味
+        # それを変数user_postsに格納している
+        user_posts = request.user.user_posts.all()
+        # 質問者（inquiry_user）もしくはポストの投稿者(post.user)がログイン中ユーザー(self.request.user)となるオブジェクト
+        # filterの文法について、まとめている記事はネット上にたくさんありますので是非調べてみてください。
+        # filter()内の書き方としては、上記のようにuser_postと、オブジェクトだけ記述することはできません。user_postsにはPostオブジェクトが入っていますので、filter内にそれだけ記述しても、MessageRoomオブジェクトの何がuser_postと一致するものを選べば良いのか？理解できません。
+        # ですので、MessageRoomオブジェクトの「postフィールドがuser_postに当てはまるものを選ぶ」などと具体的フィールドとともにフィルター処理を記述する必要があります。
+        # フィールド名__in=とすることで、複数条件をINしてフィルターをかけることができます。この辺のfilterの文法については、調べてください。つまり、user_postsにはログイン中ユーザーが投稿したPostが複数入っているので、それらを複数条件としてフィルターをかけているということです。
+        # 文法としては(モデルのフィールド=オブジェクト)
+        obj= MessageRoom.objects.filter(Q(inquiry_user=request.user)|Q(post__in=user_posts))
+        data = self.serializer_class(obj, many=True).data
+        print(request)
+        print('------')
+        print(user_posts)
+        # MessageRoomがない場合のエラーハンドリング（400を返す部分）が一番下に記載されていますが、その上でも正常時のreturnが記載されていたので、エラーであっても正常時のreturnが適用されるようになっていました。以下のように、エラーハンドリングの際のif文の場所を変更しなければなりません。
+        # メッセージルームがない場合
+        if not obj:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(data,status=status.HTTP_200_OK)
+
+
+        # 上記まとめ
+
+        # request.userはログイン中のユーザーという意味、
+        # user_postsはPostモデルにあるuserフィールドのrelated_nameなのでPostを指しているのではなく
+        # Postに紐づいているユーザー（投稿者）を指しているのではと思ったからです。
+        # つまり
+        # request.user.user_posts.all()
+        # はログインしているユーザーでPostに紐づいているユーザー（投稿者）という意味で
+        # ログイン中ユーザーの投稿Postというのは違うような気がしたのですが
+        # 上記で自分は何を勘違いしていますでしょうか？
+        # （つまりuser_posts変数にはPost投稿者でかつログインしているユーザーが格納されるという認識でいます。）
+        # 逆参照の方法についての理解が必要です。今回の実装は、1⇨多の逆参照です。
+        # まず、request.userはログイン中ユーザーを指すという解釈は正しいです。
+        # user_postsはPostモデルにあるuserフィールドのrelated_nameです。ここまではOKです。
+        # ここからが重要です。
+        # request.user.user_posts.all()
+        # 上記は、下の記述と同義です。
+        # request.user.post_set.all()
+        # これは、
+        # インスタンス.モデル名（小文字）_set.all()の記述形式であり、逆参照の記法です。
+        # つまり、「ログイン中ユーザーに紐づいている全てのPost」という意味です。
+        # 上記の記述から、related_nameを利用した記述に変更したのが、
+        # request.user.user_posts.all()
+        # です。今回のrelated_nameは“user_posts”としているので、post_set → user_posts（モデル名（小文字）_set　→ related_name名）と書くことができるようになり、直感的に分かりやすくなります。
+        # Userモデルに紐づいているPostが複数フィールドあるとき（likePost、stockPostなど）related_nameを付けないとエラーが出ます。今回は、Userモデルに紐づいているPostは1つだけだと思いますが、related_nameを用いて上記のように逆参照しているということです。
+
+        # 上記はPostモデルの
+        # userフィールドの記載ですが
+        # userフィールドとは本来ユーザーを表現するものであって
+        # Postを表現しているのではないと思っているのですが
+        # 日本語訳がなぜ
+        # 「ログイン中ユーザーに紐づいている全てのPost」
+        # になるのかが分からないでおります。。
+        # Postモデルのuserフィールドは、Userモデルに紐づいているForeignKeyです。
+        # tomato様が混乱している原因は、今回逆参照を行っているのに、参照を行っていると誤認しているためだと考えられます。ですので、参照と逆参照についての理解が必要かと思います。
+        # まずモデルを整理しましょう。簡単に、以下のようなモデルがあると考えてください。
+        # class User(models.Model):
+        #     name = models.CharField(max_length=100)
+
+        # class Post(models.Model):
+        #     title = models.CharField(verbose_name='Title', max_length=40, null=False, blank=False)
+        #     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=False, related_name='user_posts')
+        # 参照の場合　[ インスタンス.フィールド名 ]
+        # post = Post.objects.get(title="post1")
+        # post.user
+        # とすることで、タイトルが “post1"というPostオブジェクトのuserを取得することが可能です。
+        # 逆参照の場合　[ インスタンス.クラス名_set もしくは related_name ]
+        # user = User.objects.get(name="hiroko")
+        # user.post_set.all()
+        # とすることで、nameが“hiroko”というUserオブジェクトと紐づいているPostを取得することが可能です。別に言い換えれば、hirokoさんの投稿したPostを取得するということです。
+        # そして、昨日申し上げたようにpost_setという記述は、related_nameを用いるとuser_postsに書き換えることが可能です。
+        # つまり、
+        # user = User.objects.get(name="hiroko")
+        # user.user_posts.all()
+        # と書き換えることができ、これもhirokoさんの投稿したPostを取得するという処理です。
+        # ですので、僕が送ったコードのこの部分で
+        # user_posts = request.user.user_posts.all()
+        # user_postsという変数に、「ログイン中ユーザーに紐づいている全てのPost」が入っているということです。
+        # ここまでは大丈夫でしょうか？
+        # その後に続くコードで
+        # 質問者（inquiry_user）もしくはポストの投稿者(post.use)がログイン中ユーザー(self.request.user)となるオブジェクト
+        # obj= MessageRoom.objects.filter(Q(inquiry_user=request.user)|Q(post__in=user_posts))
+        # とありますが、フィルターをかけようとしているのは
+        # ユーザーに対してですよね？
+        # つまり、user_postsは日本語訳は
+        # 「ログイン中ユーザーに紐づいている全てのPostのユーザー」
+        # という認識でいるのですが、こちらは正しいでしょうか？
+        # 先程までの部分を理解していただけたら、user_postsという変数には、「ログイン中ユーザーに紐づいている全てのPostのユーザー」ではなく、「ログイン中ユーザーに紐づいている全てのPost」が格納されていることが分かります。次はフィルターに意味についてです。
+        # フィルターの条件を一つずつ理解しましょう。
+        # (inquiry_user=request.user)
+        # なんですが
+        # (Messageroomモデルにあるフィールドで質問者を表すinquiry_userフィールド=ログイン中のユーザー)
+        # という認識はただしいでしょうか？
+        # こちらの解釈は正しいです。
+        # 正しいとするなら
+        # (post__in=user_posts)
+        # の意味がよく分からないのですが、なにを勘違いしておりますでしょうか？
+        # （モデルのフィールド名を記載=実際に入れ込みたいデータ）
+        # というようなイメージおります。
+        # 先程までの説明で、user_postsという変数には、ログイン中ユーザーの投稿Postが入っていると言いました。
+        # ですので、このコードの意味は、MessageRoomオブジェクトのpostフィールドがuser_posts（ログイン中ユーザーの投稿Post）のものを取得しています。
+        # フィールド名__in=とすることで、複数条件をINしてフィルターをかけることができます。この辺のfilterの文法については、調べてください。つまり、user_postsにはログイン中ユーザーが投稿したPostが複数入っているので、それらを複数条件としてフィルターをかけているということです。
+        # ここまでがfilter条件の理解です。
+        # つまり、
+        # 質問者（inquiry_user）もしくはポストの投稿者(post.use)がログイン中ユーザー(self.request.user)となるオブジェクト
+        # obj= MessageRoom.objects.filter(Q(inquiry_user=request.user)|Q(post__in=user_posts))
+        # 上記のコードは上記のコメント通りのフィルターをかけたMessageRoomオブジェクトをobj変数に格納していることになります。
+        # とありますが、フィルターをかけようとしているのは
+        # ユーザーに対してですよね？
+        # となると、この部分は誤解があり、フィルターをかけようとしているのは、inquiry_userフィールドとpostフィールドですので、ユーザーに対してのみではありません。
+        # なぜかというと、一番初めにtomato様が記述されていたように、
+        # (post.user = request.user)
+        # というようなフィールドをネストしたフィルターはかけられないからです。
+        # 上記のコードはMessageRoomオブジェクトに紐づいているpostの投稿主＝ログイン中ユーザーかと思いますが、tomato様のモデル構成では、これができません。
+        # 仮に、MessageRoomモデルに新たに“post_user”のようなフィールドを追加し、そこに紐づいているPostの投稿者を保存する構成ならば
+        # (post_user = request.user)
+        # と記述するだけで良いので、
+        # obj= MessageRoom.objects.filter(Q(inquiry_user=request.user)|Q(post_user=request.user))
+        # と書くことができ、これはユーザーに対してのみのフィルターで済みます。
+        # ですが、今回はMessageRoomモデルにそのようなフィールドは用意されていません。
+        # ですので、わざわざuser_postsという変数に「ログイン中ユーザーに紐づいている全てのPost」を取得したのちに
+        # それをフィルターに用いているということです。
+        # もしどうしてもこのような逆参照が難しい場合は、
+        # 先に申し上げた通りMessageRoomモデルにpostの投稿主（MessageRoomに紐づいているPostを投稿したユーザー）を格納するフィールドを作成し、それをフィルター条件に用いると良いかと思います。
+
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )
