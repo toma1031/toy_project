@@ -20,6 +20,8 @@ import base64
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.db.models import Q
+import django_filters.rest_framework
+
 
 # class PostViewSet(viewsets.ModelViewSet):
 
@@ -154,6 +156,25 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    # 検索機能
+    # https://www.utakata.work/entry/python/django/rest-framework/filter#REST-framework-%E3%81%AE%E8%A9%B3%E7%B4%B0%E3%81%AA%E4%BB%95%E6%A7%98
+    # https://www.django-rest-framework.org/api-guide/filtering/
+    # DjangoFilterBackendとSearchFilterを使えば良いと思います。
+    # DjangoFilterBackendは、filterset_fieldsで指定したフィールドに対してのみ、完全一致でのフィルタが可能になります。
+    # ex) 投稿者がAさんのPost の検索
+    # SearchFilter は、search_fieldsで指定したフィールドに対してのみ、キーワード検索を可能にします。
+    # ex) タイトルに“Switch”が含まれるPostの検索
+    # ちなみに他にOrderingFilterでは、オーダリング（ソート）が可能になります。
+    # DjangoFilterBackend を使うには、django-filter をインストールし、 django_filters を Django の INSTELLED_APPS に追加する必要がありますので、この辺は調べると例がたくさん出てくると思います。
+    # Reactとの繋げ方はシンプルです。
+    # DRFでフィルターの設定ができると、写真のようにAPIコンソールでフィルタリングできるようになります。
+    # このURLがエンドポイントとなるので、React側でそれに合わせてAxiosリクエストを送れば良いということです。
+    # 例として、PostModelViewSetでDjangoFilterBackendを使うとします。「ユーザーtestさんが投稿したPostを検索」します。
+    # すると、URLは
+    # /posts/?owner=test
+    # のように変化します。このURLにReact側でGetリクエストを送ると、「ユーザーtestさんが投稿したPost」のみが返ってくるという流れです。
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'maker']
 
     # http://note.crohaco.net/2018/django-rest-framework-serializer/
     # 上記の記事で非常に詳しく説明されていますが、
@@ -321,6 +342,8 @@ class PostViewSet(viewsets.ModelViewSet):
                 # HTTP_201_CREATEDは「リクエストは完了し新たにリソースが作成された。」という意味です。
                 # 参照https://www.django-rest-framework.org/api-guide/status-codes/
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
 
 class MessageRoomViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )

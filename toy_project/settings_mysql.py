@@ -59,6 +59,9 @@ INSTALLED_APPS = [
     # 参考記事
     # https://pypi.org/project/django-cleanup/
     'django_cleanup.apps.CleanupConfig',
+    # 検索機能
+    'django_filters',
+
 ]
 
 
@@ -186,6 +189,8 @@ REST_FRAMEWORK = {
     ),  
     'NON_FIELD_ERRORS_KEY': 'detail',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    # 検索機能
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 # 追加
