@@ -8,6 +8,7 @@ router = DefaultRouter()
 router.register(r'posts',views.PostViewSet)
 router.register(r'messagerooms',views.MessageRoomViewSet)
 router.register(r'messages',views.MessageViewSet)
+# router.register(r'link',views.LinkViewSet)
 
 urlpatterns = [
     # 上でDefaultRouterに定義したurlが登録されAPIコンソールに表示される

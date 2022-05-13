@@ -133,14 +133,34 @@ class UserViewSet(viewsets.ModelViewSet):
     def update(self, request, pk, partial=True):
             # update()に入っているか & リクエストデータ確認用
             print(request.data)
+             # idを用いてユーザーを特定している（ここが本来はrequest.userで取れるはず）
+            user = User.objects.get(id=pk)
+            print(user)
             print(request.user)
-            data={'username':request.data['username'],'email':request.data['email'],'state': request.data['state'], 'city': request.data['city'], 'address': request.data['address'], 'zipcode': request.data['zipcode'],'phone_number': request.data['phone_number']}
-            serializer = self.serializer_class(request.user,data=data, partial=True)
+            # emailとusernameを除外したdataをあらかじめ用意しておき，
+            data={'state': request.data['state'], 'city': request.data['city'], 'address': request.data['address'], 'zipcode': request.data['zipcode'],'phone_number': request.data['phone_number']}
+            # usernameが登録のものと一緒じゃない時（つまり更新された時）をdata変数にusernameを追加する
+            if request.data['username'] != user.username:
+                data['username'] = request.data['username']
+            # emailが登録のものと一緒じゃない時（つまり更新された時）をdata変数にEmailを追加する
+            if request.data['email'] != user.email:
+                data['email'] = request.data['email']
+            # 下記はserializerという変数に，UserViewSetのserializer_class，つまりUserSerializerを格納しています．serializerを呼ぶ際に，引数が二つ（partial=true以外）ある場合は，updateメソッドがコールされるので，このコードではUserViewSetのupdateメソッドをコールしていることになります．
+            # このserializerはこのあと，
+            # serializer.is_valid()
+            # を通して
+            # serializer.save()
+            # とsave（create or update）されます．
+            # また、request.userはAnonymousとなっているのでエラーが出ます．これを解決するためにわざわざuser変数を導入しているので，更新対象のオブジェクトにはuserを指定します．
+            serializer = self.serializer_class(user,data=data, partial=True)
+            # ここ追記
+            if user.is_anonymous:
+                return Response("unauthorized", status=status.HTTP_401_UNAUTHORIZED)
             if serializer.is_valid():
                 serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             print(serializer.errors)
-            return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response("bad request", status=status.HTTP_400_BAD_REQUEST)
 
 #追加
 # トークン（ユーザー情報）を取得するのに必要なView

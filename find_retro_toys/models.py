@@ -60,3 +60,10 @@ class Message(models.Model):
       return str(self.id)
 
 
+# メッセージがあった時メール通知が行くようにする
+# class Notification(models.Model):
+#     receiver = models.ForeignKey(Message, on_delete=models.CASCADE, null=False, related_name='receiver')
+#     sender = models.ForeignKey(Message, on_delete=models.CASCADE, null=False, related_name='sender')
+#     send_email_time = models.DateTimeField(default=timezone.now)
+#     message = models.ForeignKey(Message, verbose_name='Message_contents', on_delete=models.CASCADE)
+#     link = models.CharField(verbose_name='Link', max_length=40, null=False)

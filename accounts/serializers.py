@@ -19,12 +19,13 @@ class UserSerializer(serializers.ModelSerializer):
                 email=validated_data['email'],
                 username=validated_data['username'],
                 password=validated_data['password'],
-                state=validated_data['state'],
-                city=validated_data['city'],
-                address=validated_data['address'],
-                zipcode=validated_data['zipcode'],
-                phone_number=validated_data['phone_number'],
+                # state=validated_data['state'],
+                # city=validated_data['city'],
+                # address=validated_data['address'],
+                # zipcode=validated_data['zipcode'],
+                # phone_number=validated_data['phone_number'],
             )
+            print(validated_data)
             return user
 
     # def update(self, instance, validated_data):

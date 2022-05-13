@@ -80,3 +80,15 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ('message', 'message_room', 'message_user', 'create_time')
+
+
+class LinkSerializer(serializers.ModelSerializer):
+    receiver = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+    send_email_time = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
+    message = serializers.SerializerMethodField()
+    link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = ('receiver', 'sender', 'send_email_time', 'message', 'link')

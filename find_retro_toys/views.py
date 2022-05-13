@@ -393,9 +393,6 @@ class MessageRoomViewSet(viewsets.ModelViewSet):
         # 文法としては(モデルのフィールド=オブジェクト)
         obj= MessageRoom.objects.filter(Q(inquiry_user=request.user)|Q(post__in=user_posts))
         data = self.serializer_class(obj, many=True).data
-        print(request)
-        print('------')
-        print(user_posts)
         # MessageRoomがない場合のエラーハンドリング（400を返す部分）が一番下に記載されていますが、その上でも正常時のreturnが記載されていたので、エラーであっても正常時のreturnが適用されるようになっていました。以下のように、エラーハンドリングの際のif文の場所を変更しなければなりません。
         # メッセージルームがない場合
         if not obj:
@@ -516,8 +513,6 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
 
     def create(self, request, pk=None):
-            print(request.data)
-            print(self.request.user)
             # serializerの引数が一つの時は、create()が呼び出されるということを以前確認しました。
             # そして、create()が呼び出される際の引数には作成したいオブジェクトの中身を指定します。
             # 今回も同様、新たなMessageを作成したいので、その引数としてdataというオブジェクトを用意しています。
@@ -544,3 +539,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             print(serializer.errors)
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# class LikeViewSet(viewsets.ModelViewSet):
+#     permission_classes = (permissions.AllowAny, )
+#     queryset = Like.objects.all()
+#     serializer_class = LikeSerializer
