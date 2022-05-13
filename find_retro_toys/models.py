@@ -67,3 +67,13 @@ class Message(models.Model):
 #     send_email_time = models.DateTimeField(default=timezone.now)
 #     message = models.ForeignKey(Message, verbose_name='Message_contents', on_delete=models.CASCADE)
 #     link = models.CharField(verbose_name='Link', max_length=40, null=False)
+
+
+class Like(models.Model):
+  post = models.ForeignKey(Post, on_delete=models.CASCADE)
+  user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
+  timestamp = models.DateTimeField(default=timezone.now)
+
+# 以下を書くことによりPostをちゃんとオブジェクト名で表示できる
+  def __str__(self):
+    return self.post

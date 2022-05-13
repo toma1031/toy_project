@@ -82,13 +82,22 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = ('message', 'message_room', 'message_user', 'create_time')
 
 
-class LinkSerializer(serializers.ModelSerializer):
-    receiver = serializers.SerializerMethodField()
-    sender = serializers.SerializerMethodField()
-    send_email_time = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
-    message = serializers.SerializerMethodField()
-    link = serializers.SerializerMethodField()
+# class LinkSerializer(serializers.ModelSerializer):
+#     receiver = serializers.SerializerMethodField()
+#     sender = serializers.SerializerMethodField()
+#     send_email_time = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
+#     message = serializers.SerializerMethodField()
+#     link = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Message
-        fields = ('receiver', 'sender', 'send_email_time', 'message', 'link')
+#     class Meta:
+#         model = Message
+#         fields = ('receiver', 'sender', 'send_email_time', 'message', 'link')
+
+# class LikeSerializer(serializers.ModelSerializer):
+#     user = serializers.SerializerMethodField()
+#     # 下記のようにformatの部分を好みに変更することで時間の表記が変更可能．
+#     timestamp = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
+
+#     class Meta:
+#         model = Message
+#         fields = ('post', 'user', 'timestamp')

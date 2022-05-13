@@ -542,6 +542,11 @@ class MessageViewSet(viewsets.ModelViewSet):
 
 
 
+# class LinkViewSet(viewsets.ModelViewSet):
+#     permission_classes = (permissions.AllowAny, )
+#     queryset = Message.objects.all()
+#     serializer_class = LinkSerializer
+
 # class LikeViewSet(viewsets.ModelViewSet):
 #     permission_classes = (permissions.AllowAny, )
 #     queryset = Like.objects.all()
