@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Message, MessageRoom, Post, ConditionTag
+from .models import Message, MessageRoom, Post, ConditionTag, Like
 
 class ConditionTagAdmin(admin.ModelAdmin):
     list_display = ['id', 'condition_tag']
@@ -23,7 +23,14 @@ class MessageAdmin(admin.ModelAdmin):
     def message_room_id(self, obj):
         return obj.message_room.id
 
+class LikeAdmin(admin.ModelAdmin):
+    list_display = ['id', 'post', 'user', 'timestamp']
+
+    def like_id(self, obj):
+        return obj.id
+
 admin.site.register(Post, PostAdmin)
 admin.site.register(MessageRoom, MessageRoomAdmin)
 admin.site.register(Message, MessageAdmin)
 admin.site.register(ConditionTag, ConditionTagAdmin)
+admin.site.register(Like, LikeAdmin)

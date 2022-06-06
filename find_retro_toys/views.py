@@ -8,8 +8,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status, viewsets, filters
 from rest_framework.views import APIView
-from .serializers import PostSerializer, MessageSerializer, MessageRoomSerializer
-from .models import Post, ConditionTag, Message, MessageRoom
+from .serializers import PostSerializer, MessageSerializer, MessageRoomSerializer, LikeSerializer
+from .models import Post, ConditionTag, Message, MessageRoom, Like
 from accounts.models import User
 from rest_framework.decorators import action
 from rest_framework_simplejwt.views import (
@@ -343,8 +343,28 @@ class PostViewSet(viewsets.ModelViewSet):
                 # 参照https://www.django-rest-framework.org/api-guide/status-codes/
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
-
+    # お気に入り
+    @action(detail=True, permission_classes=[IsAuthenticated])
+    def like(self, request, pk):
+        # リクエストユーザーと対象ポストに紐付くLikeオブジェクトを作成
+        obj, created = Like.objects.get_or_create(user=request.user, post=self.get_object())
+        # 下記でLikeオブジェクトデータをフロントエンドへ送るためJSON化の準備をしている
+        serializer = LikeSerializer(obj)
+        print(request.user)
+        if created:
+            print("created")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # Likeが既存の場合
+        else:
+            print("not created")
+            # お気に入りを取り除く
+            obj.delete()
+            # HTTP_200_OKは「リクエストは成功しレスポンスとともに要求に応じたリソースが返される。」という意味です。
+            # 参照https://www.django-rest-framework.org/api-guide/status-codes/
+            return Response("Delete Like Object", status=status.HTTP_200_OK)
+        
+ 
+                
 class MessageRoomViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )
     queryset = MessageRoom.objects.all()

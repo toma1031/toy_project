@@ -1,7 +1,7 @@
 # DjangoRESTFrameworkでは、forms.pyのかわりにSerializers.pyでデータの入出力形式を扱います。
 from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
-from .models import Post, MessageRoom, Message
+from .models import Post, MessageRoom, Message, Like
 
 # シリアライズとは、データをフロント（API）に返す際にJSON形式に変換すること
 # デシリアライズとは、JSON形式のデータをpythonが扱えるデータ形式に変換すること　です。
@@ -93,11 +93,14 @@ class MessageSerializer(serializers.ModelSerializer):
 #         model = Message
 #         fields = ('receiver', 'sender', 'send_email_time', 'message', 'link')
 
-# class LikeSerializer(serializers.ModelSerializer):
-#     user = serializers.SerializerMethodField()
-#     # 下記のようにformatの部分を好みに変更することで時間の表記が変更可能．
-#     timestamp = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
+class LikeSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    # 下記のようにformatの部分を好みに変更することで時間の表記が変更可能．
+    timestamp = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
 
-#     class Meta:
-#         model = Message
-#         fields = ('post', 'user', 'timestamp')
+    def get_user(self, obj):
+        return obj.user.username
+
+    class Meta:
+        model = Like
+        fields = ('post', 'user', 'timestamp')

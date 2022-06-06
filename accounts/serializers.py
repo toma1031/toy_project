@@ -3,7 +3,7 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer #追加
 from .models import User, State
-
+from find_retro_toys.models import Like
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
@@ -79,3 +79,17 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # 取得したらそのユーザー情報（トークン）を返す
         return token
+
+
+
+class LikedPostsSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    # 下記のようにformatの部分を好みに変更することで時間の表記が変更可能．
+    timestamp = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
+
+    def get_user(self, obj):
+        return obj.user.username
+
+    class Meta:
+        model = Like
+        fields = ('post', 'user', 'timestamp')

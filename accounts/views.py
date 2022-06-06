@@ -9,6 +9,8 @@ from rest_framework import status, viewsets, filters
 from rest_framework.views import APIView
 from .serializers import UserSerializer
 from .models import User, State
+from find_retro_toys.models import Like, Post
+from find_retro_toys.serializers import PostSerializer
 from rest_framework.decorators import action
 from .serializers import MyTokenObtainPairSerializer #追加
 from rest_framework_simplejwt.views import (
@@ -18,6 +20,7 @@ from rest_framework_simplejwt.views import (
 
 from accounts import permissions
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 
 
 
@@ -162,6 +165,32 @@ class UserViewSet(viewsets.ModelViewSet):
             print(serializer.errors)
             return Response("bad request", status=status.HTTP_400_BAD_REQUEST)
 
+
+    @action(detail=True, permission_classes=[IsAuthenticated])
+    # 404エラーは、ルーティングのエラーです。写真でアクセスしているURLが存在しない、という意味です。
+    # エラー詳細の4.5行目に
+    # /users/liked_posts/…
+    # と書いてありますが、これを見れば /users/{id}/liked_posts　となって欲しい部分がうまく動いていないことがわかります。
+    # （つまり、詳細Viewになっていない）
+    # liked_postsはお気に入りしたPostをユーザーごとに取得したいので、ユーザーの詳細が必要です。ですのでアクションメソッドのpkをNoneから変更する必要があります。
+    def liked_posts(self, request, pk):
+        print(request.user)
+        # ログインしているユーザーがLikeしたPostを取得し、liked_posts変数へ代入
+        liked_posts = request.user.liked_user.all()
+        print(liked_posts)
+        # 下記はログインしているユーザー（request.user）がLikeしたPostをobj変数に代入している
+        # 下記はand検索を行いたいのでfilterの条件文
+        # liked_post_inの部分は、LikeModelのuser fieldのrelatednameです。
+        obj= Post.objects.filter(user=request.user, liked_post__in=liked_posts)
+        # Post一覧を出力させるためにはPostSerializerに変更する必要がある
+        data = PostSerializer(obj, many=True).data
+        # Liked_postがない場合のエラーハンドリング（400を返す部分）が一番下に記載されていますが、その上でも正常時のreturnが記載されていたので、エラーであっても正常時のreturnが適用されるようになっていました。以下のように、エラーハンドリングの際のif文の場所を変更しなければなりません。
+        # Liked_postがない場合
+        if not obj:
+            # 204は、内容なしという意味です。
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(data,status=status.HTTP_200_OK)
+
 #追加
 # トークン（ユーザー情報）を取得するのに必要なView
 class ObtainTokenPairWithColorView(TokenObtainPairView):
@@ -224,3 +253,5 @@ class MyPagePasswordUpdateView(generics.RetrieveAPIView):
         # 以前から、stateを追加されたことが原因です。stateのみForeignKeyとなっていますので、JSONシリアライズできないとエラーが出ていました。基本的にForeignKeyやManyToManyFieldが含まれている場合は以前までの書き方ではうまく返せません。
         # そこで、今回のコードでserializerを用いてデシリアライズ（Model内のobjectを復元）してresponseで返すようにしています。
         return Response(data,status=status.HTTP_200_OK)
+
+

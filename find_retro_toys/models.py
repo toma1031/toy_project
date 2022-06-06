@@ -70,10 +70,6 @@ class Message(models.Model):
 
 
 class Like(models.Model):
-  post = models.ForeignKey(Post, on_delete=models.CASCADE)
-  user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
+  post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='liked_post')
+  user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='liked_user')
   timestamp = models.DateTimeField(default=timezone.now)
-
-# 以下を書くことによりPostをちゃんとオブジェクト名で表示できる
-  def __str__(self):
-    return self.post
