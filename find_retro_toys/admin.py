@@ -5,7 +5,7 @@ class ConditionTagAdmin(admin.ModelAdmin):
     list_display = ['id', 'condition_tag']
 
 class PostAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'user']
+    list_display = ['id', 'title', 'user', 'like_numbers']
 
 class MessageRoomAdmin(admin.ModelAdmin):
     list_display = ['id', 'inquiry_user', 'post_id', 'post_user', 'post']

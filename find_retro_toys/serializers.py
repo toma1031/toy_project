@@ -25,9 +25,10 @@ class PostSerializer(serializers.ModelSerializer):
     # API画面で表示するモデルのフィールドをfieldsに記載
     class Meta:
         model = Post
+        # Postを扱うSerializerでいいね数も含めて返すように修正する
         fields = ('id', 'title', 'maker', 'condition', 'price', 'description',
                   'user', 'username', 'condition_name', 'shipping_price',
-                  'photo', 'photo2', 'photo3', 'photo4', 'photo5')
+                  'photo', 'photo2', 'photo3', 'photo4', 'photo5', 'like_numbers')
         read_only_fields = ('id', 'user', 'username', 'condition_name')
 
 

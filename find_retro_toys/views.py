@@ -351,19 +351,37 @@ class PostViewSet(viewsets.ModelViewSet):
         # 下記でLikeオブジェクトデータをフロントエンドへ送るためJSON化の準備をしている
         serializer = LikeSerializer(obj)
         print(request.user)
+        post = self.get_object()
         if created:
             print("created")
+            # 対象のLikeがなければ（いいねの新規作成）カウントアップをコールする
+            # カウントアップしたい部分で以下を呼び出す
+            post.countup_like_numbers()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         # Likeが既存の場合
         else:
             print("not created")
+            # 対象のLikeがあればカウントダウンをコールする
+            post.countdown_like_numbers()
             # お気に入りを取り除く
             obj.delete()
             # HTTP_200_OKは「リクエストは成功しレスポンスとともに要求に応じたリソースが返される。」という意味です。
             # 参照https://www.django-rest-framework.org/api-guide/status-codes/
             return Response("Delete Like Object", status=status.HTTP_200_OK)
         
- 
+    ## いいね判断用
+    ## PostViewSet
+    @action(detail=True)
+    def judgeLiked(self, request, pk):
+        isLiked = False
+        post_id = self.kwargs['pk']
+        post = Post.objects.get(id=post_id)
+        if not self.request.user.is_anonymous:
+            if Like.objects.filter(user=self.request.user, post=post).exists():
+                isLiked = True
+            else:
+                isLiked = False
+        return Response(isLiked,status=status.HTTP_200_OK)
                 
 class MessageRoomViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny, )

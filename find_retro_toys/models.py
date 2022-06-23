@@ -25,10 +25,24 @@ class Post(models.Model):
   photo3 = models.ImageField(verbose_name='Photo3', null=True, blank=True, upload_to='images/photo_from_user')
   photo4 = models.ImageField(verbose_name='Photo4', null=True, blank=True, upload_to='images/photo_from_user')
   photo5 = models.ImageField(verbose_name='Photo5', null=True, blank=True, upload_to='images/photo_from_user')
+  like_numbers = models.IntegerField(default=0)
 
 # 以下を書くことによりcategoryをちゃんとオブジェクト名で表示できる
   def __str__(self):
     return str(self.title)
+
+# いいね数をカウントアップ・カウントダウンする用のメソッドを定義する
+# 下記のようにモデルの値を更新してセーブする
+  def countup_like_numbers(self):
+      self.like_numbers += 1
+      self.save()
+
+  def countdown_like_numbers(self):
+      self.like_numbers -= 1
+      self.save()
+
+
+
 
 class MessageRoom(models.Model):
     # related_nameの使い方
